@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>员工列表</title>
+        <!--vue-->
+        <script src="/vea/vue.js"></script>
+        <!--&lt;!&ndash; element-ui引入样式 &ndash;&gt;-->
+        <!--<link rel="stylesheet" href="/vea/element-ui.css">-->
+        <!--&lt;!&ndash; element-ui引入组件库 &ndash;&gt;-->
+        <!--<script src="/vea/element-ui.js"></script>-->
+        <!-- element-ui引入样式 -->
+        <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+        <!-- element-ui引入组件库 -->
+        <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+        <!--axios 相当于jquery  页面异步请求数据使用 -->
+        <script src="/vea/axios.min.js"></script>
+    </head>
+    <body>
+        <div id="app">
+            <el-row :gutter="20">
+                <el-col :span="5">
+                    <el-input v-model="ename"  maxlength="10" placeholder="请输入员工名称"></el-input>
+                </el-col>
+                <el-col :span="4">
+                    <el-input v-model="job"  maxlength="10" placeholder="职位"></el-input>
+                </el-col>
+
+                <el-col :span="2" style="text-align: center">
+                    <el-button type="primary" icon="el-icon-search" @click="search">搜索</el-button>
+                </el-col>
+                <el-col :span="2">
+                    <el-button type="primary" icon="el-icon-circle-plus" @click="dialogFormAdd=true">添加</el-button>
+                </el-col>
+            </el-row>
+            <el-row>
+                <el-table
+                        :data="tableData"
+                        style="width: 100%">
+                    <el-table-column
+                            prop="EMPNO"
+                            label="员工编号">
+                    </el-table-column>
+                    <el-table-column
+                            prop="ENAME"
+                            label="员工姓名">
+                    </el-table-column>
+                    <el-table-column
+                            prop="JOB"
+                            label="职位">
+                    </el-table-column>
+                    <el-table-column
+                            prop="MGR"
+                            label="上司编号"
+                            v-if="show">
+                    </el-table-column>
+                    <el-table-column
+                            prop="MGRNAME"
+                            label="上司">
+                    </el-table-column>
+                    <el-table-column
+                            prop="HIREDATE"
+                            label="入职日期">
+                            <!--:formatter="formatHireDate">-->
+                    </el-table-column>
+                    <el-table-column
+                            prop="SAL"
+                            label="工资">
+                    </el-table-column>
+                    <el-table-column
+                            prop="COMM"
+                            label="奖金"
+                            :formatter="formatComm">
+                    </el-table-column>
+                    <el-table-column
+                            prop="DEMPNO"
+                            label="所属部门编号"
+                            v-if="show">
+                    </el-table-column>
+                    <el-table-column
+                            prop="DNAME"
+                            label="所属部门">
+                    </el-table-column>
+                    <el-table-column label="操作">
+                        <template slot-scope="scope">
+                            <el-button
+                                    size="mini"
+                                    type="primary"
+                                    icon="el-icon-share"
+                                    @click="handleEdit(scope.$index, scope.row)">编辑
+                            </el-button>
+                            <el-button
+                                    size="mini"
+                                    type="danger"
+                                    @click="handleDelete(scope.$index, scope.row)">删除
+                            </el-button>
+                        </template>
+                    </el-table-column>
+                </el-table>
+            </el-row>
+            <el-row>
+                <el-pagination
+                        @size-change="handleSizeChange"
+                        @current-change="handleCurrentChange"
+                        :current-page="pageNo"
+                        :page-sizes="[2,3,4,5,10,100, 200, 300, 400]"
+                        :page-size="pageSize"
+                        layout="total, sizes, prev, pager, next, jumper"
+                        :total="total">
+                </el-pagination>
+            </el-row>
+            <el-row>
+                <el-dialog title="员工添加" :visible.sync="dialogFormAdd">
+                    <el-form :model="form">
+                        <el-form-item label="员工姓名" :label-width="formLabelWidth">
+                            <el-input v-model="form.ENAME" autocomplete="off"></el-input>
+                        </el-form-item>
+                        <el-form-item label="职位" :label-width="formLabelWidth">
+                            <el-select v-model="form.JOB" clearable  placeholder="请选择职位">
+                                <el-option
+                                        v-for="item in allJob"
+                                        :key="item.JOB"
+                                        :label="item.JOB"
+                                        :value="item.JOB">
+                                </el-option>
+                            </el-select>
+                        </el-form-item>
+                        <el-form-item label="上司" :label-width="formLabelWidth">
+                            <el-select v-model="form.MGR" clearable  placeholder="请选择上司">
+                                <el-option
+                                        v-for="item in allMgr"
+                                        :key="item.EMPNO"
+                                        :label="item.ENAME"
+                                        :value="item.EMPNO">
+                                </el-option>
+                            </el-select>
+                        </el-form-item>
+                        <el-form-item label="入职日期" :label-width="formLabelWidth">
+                            <el-date-picker
+                                    v-model="form.HIREDATE"
+                                    type="date"
+                                    placeholder="请选择日期"
+                                    value-format="yyyy-MM-dd">
+                            </el-date-picker>
+                        </el-form-item>
+                        <el-form-item label="工资" :label-width="formLabelWidth">
+                            <el-input v-model="form.SAL" autocomplete="off"></el-input>
+                        </el-form-item>
+                        <el-form-item label="奖金" :label-width="formLabelWidth">
+                            <el-input v-model="form.COMM" autocomplete="off"></el-input>
+                        </el-form-item>
+                        <el-form-item label="所属部门" :label-width="formLabelWidth">
+                        <el-select v-model="form.DEPTNO" clearable  placeholder="请选择部门">
+                            <el-option
+                                    v-for="item in deptType"
+                                    :key="item.DEPTNO"
+                                    :label="item.DNAME"
+                                    :value="item.DEPTNO">
+                            </el-option>
+                        </el-select>
+                    </el-form-item>
+                    </el-form>
+                    <div slot="footer" class="dialog-footer">
+                        <el-button @click="dialogFormAdd = false">取 消</el-button>
+                        <el-button type="primary" @click="add">确 定</el-button>
+                    </div>
+                </el-dialog>
+            </el-row>
+
+            <el-row>
+                <el-dialog title="员工更新" :visible.sync="dialogFormUpdate">
+                    <el-form :model="form">
+                        <el-form-item label="员工姓名" :label-width="formLabelWidth">
+                            <el-input v-model="form.ENAME" autocomplete="off"></el-input>
+                        </el-form-item>
+                        <el-form-item label="职位" :label-width="formLabelWidth">
+                            <el-select v-model="form.JOB" clearable  placeholder="请选择职位">
+                                <el-option
+                                        v-for="item in allJob"
+                                        :key="item.JOB"
+                                        :label="item.JOB"
+                                        :value="item.JOB">
+                                </el-option>
+                            </el-select>
+                        </el-form-item>
+                        <el-form-item label="上司" :label-width="formLabelWidth">
+                            <el-select v-model="form.MGR" clearable  placeholder="请选择上司">
+                                <el-option
+                                        v-for="item in allMgr"
+                                        :key="item.EMPNO"
+                                        :label="item.ENAME"
+                                        :value="item.EMPNO">
+                                </el-option>
+                            </el-select>
+                        </el-form-item>
+                        <el-form-item label="入职日期" :label-width="formLabelWidth">
+                            <el-date-picker
+                                    v-model="form.HIREDATE"
+                                    type="date"
+                                    placeholder="请选择日期"
+                                    value-format="yyyy-MM-dd">
+                            </el-date-picker>
+                        </el-form-item>
+                        <el-form-item label="工资" :label-width="formLabelWidth">
+                            <el-input v-model="form.SAL" autocomplete="off"></el-input>
+                        </el-form-item>
+                        <el-form-item label="奖金" :label-width="formLabelWidth">
+                            <el-input v-model="form.COMM"  autocomplete="off"></el-input>
+                        </el-form-item>
+                        <el-form-item label="所属部门" :label-width="formLabelWidth">
+                            <el-select v-model="form.DEPTNO" clearable  placeholder="请选择部门">
+                                <el-option
+                                        v-for="item in deptType"
+                                        :key="item.DEPTNO"
+                                        :label="item.DNAME"
+                                        :value="item.DEPTNO">
+                                </el-option>
+                            </el-select>
+                        </el-form-item>
+                    </el-form>
+                    <div slot="footer" class="dialog-footer">
+                        <el-button @click="dialogFormUpdate = false">取 消</el-button>
+                        <el-button type="primary" @click="update">确 定</el-button>
+                    </div>
+                </el-dialog>
+            </el-row>
+        </div>
+        <script>
+            var vue = new Vue({
+                el: "#app",
+                data: {
+                    tableData: [],
+                    deptType:[], //部门类别
+                    allJob:[], //职位
+                    allMgr:[], //上司
+                    pageNo: 1, 
+                    pageSize: 2,
+                    total: 0,
+                    ename:'',
+                    job:'',
+                    form:{}, //新增，修改，时弹出框使用
+                    dialogFormAdd:false,//添加弹出框是否显示
+                    dialogFormUpdate:false,//更新弹出框是否显示
+                    formLabelWidth:"120px",
+                    show: false //隐藏列
+                },
+                created: function () {
+                    this.loadData();
+                },
+                methods: {
+                    loadData: function () {
+                        //先获取当前Vue这个对象，可以在异步请求函数内使用该对象的属性或者函数
+                        var _this = this;
+                        //axios异步请求
+                        axios.get('/emp/list', {
+                            params: {
+                                pageNo: this.pageNo,
+                                pageSize: this.pageSize,
+                                empNo:this.empNo,
+                                ename:this.ename,
+                                empName:this.empName,
+                                job:this.job,
+                                deptNo:this.deptNo
+                            }
+                        })
+                            .then(function (response) {
+                                //处理成功
+                                _this.tableData = response.data.list;
+                                _this.total = response.data.total;
+                                //页面初始化时绑定条件查询的部门类别下拉框
+                                _this.deptType = response.data.deptType;
+                                //职位
+                                _this.allJob = response.data.allJob;
+                                //上司
+                                _this.allMgr = response.data.allMgr;
+                            })
+                            .catch(function (error) {
+                                //处理错误
+                                //console.log(error);
+                                _this.$message.error('错了哦，这是一条错误消息');
+                            })
+                            .then(function () {
+                            });
+                    },
+                    //当页面的每页显示数量发生变化时事件
+                    handleSizeChange: function (v) {
+                        //alert(v);
+                        this.pageSize = v;
+                        this.loadData();
+                    },
+                    //页码发生变化时事件
+                    handleCurrentChange: function (v) {
+                        //alert(v);
+                        this.pageNo = v;
+                        this.loadData();
+                    },
+                    //处理奖金空值
+                    formatComm: function (row, column, cellValue) {
+                        //当从后台查出来后为空时，页面的列是没值的，row里没有COMM这列
+                        if (row.COMM == null) {
+                            return 0;
+                        }else {
+                            return row.COMM;
+                        }
+                    },
+                    //按条件搜索,无论在第几页按条件查询后，刷新第一页
+                    search:function () {
+                        this.pageNo=1;
+                        this.loadData();
+                    },
+                    //查询清空,无论在第几页按条件查询后，刷新第一页
+                    reset:function () {
+                        this.empNo='';
+                        this.empName='';
+                        this.job='';
+                        this.deptNo='';
+                        this.pageNo=1;
+                        this.loadData();
+                    },
+                    //添加
+                    add:function () {
+                        var _this=this;
+                        axios.post('/emp/add', this.form)
+                            .then(function (response) {
+                                //console.log(response);
+                                if (response.data>0) {
+                                    //关闭弹出框
+                                    _this.dialogFormAdd=false;
+                                    //重点：要去刷新第一页,重新加载数据
+                                    _this.pageNo=1;
+                                    _this.loadData();
+                                    //清空form里的内容
+                                    _this.form={};
+                                    //提示成功
+                                    _this.$message({
+                                        message: '恭喜你，操作成功',
+                                        type: 'success'
+                                    });
+                                }else {
+                                    _this.$message.error('错了哦，操作失败');
+                                }
+                            })
+                            .catch(function (error) {
+                                //console.log(error);
+                                _this.$message.error('错了哦，这是一条错误消息');
+                            });
+                    },
+                    //处理编辑，弹出更新框
+                    handleEdit:function(index, row) {
+                        //弹出更新框
+                        this.dialogFormUpdate=true;
+                        //对更新框的form表单的元素进行赋值
+
+                        // row.COMM = typeof(row.COMM) == 'undefined' ? '0' : row.COMM;
+                        // console.log(row.COMM);
+                        this.form=row;
+                    },
+                    //更新
+                    update:function () {
+                        var _this=this;
+                        axios.post('/emp/update',this.form)
+                            .then(function (response) {
+                                //console.log(response);
+                                if (response.data==1) {
+                                    //关闭弹出框
+                                    _this.dialogFormUpdate=false;
+                                    //重点：刷新当前页面,重新加载数据
+                                    _this.loadData();
+
+                                    //提示成功
+                                    _this.$message({
+                                        message: '恭喜你，操作成功',
+                                        type: 'success'
+                                    });
+                                }else {
+                                    _this.$message.error('错了哦，操作失败');
+                                }
+                            })
+                            .catch(function (error) {
+                                //console.log(error);
+                                _this.$message.error('错了哦，这是一条错误消息');
+                            });
+                    },
+                    //删除
+                    handleDelete:function (index, row) {
+                        //console.log(index, row);
+                        this.$confirm('此操作将永久删除该文件, 是否继续?', '提示', {
+                            confirmButtonText: '确定',
+                            cancelButtonText: '取消',
+                            type: 'warning'
+                        }).then(() => {
+                            var _this=this;
+                            axios.post('/emp/delete?empNo='+row.EMPNO)
+                                .then(function (response) {
+                                    //console.log(response);
+                                    if (response.data>0) {
+                                        //重点：刷新当前页面,重新加载数据
+                                        _this.loadData();
+                                        //提示成功
+                                        _this.$message({
+                                            message: '恭喜你，操作成功',
+                                            type: 'success'
+                                        });
+                                    }else {
+                                        _this.$message.error('错了哦，操作失败');
+                                    }
+                                })
+                                .catch(function (error) {
+                                    //console.log(error);
+                                    _this.$message.error('错了哦，这是一条错误消息');
+                                });
+                        }).catch(() => {
+                            this.$message({
+                                type: 'info',
+                                message: '已取消删除'
+                            });
+                        });
+                    }
+                }
+            })
+        </script>
+    </body>
+</html>

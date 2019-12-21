@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>用户登录</title>
+    <script src="/js/jquery-3.4.1.min.js"></script>
+    <script>
+        $(function () {
+            //绑定登录按钮点击事件
+            $("#btn").click(function () {
+                $.ajax({
+                    url:"/user/login",
+                    data:{userName:$("#userN").val(),passWord:$("#passW").val()},
+                    type:"post",
+                    dataType:"json",
+                    success:function (data) {
+                       if(data==1){
+                           //跳转首页
+                          location.href="/html/dept/list.html";
+                       }else{
+                           $("#errorDiv").html("用户名或者密码错误！");
+                       }
+                    },
+                    error:function () {
+                        alert("error");
+                    }
+                });
+            });
+        });
+    </script>
+</head>
+<body>
+     <div style="color: red;" id="errorDiv"></div>
+     用户名：<input type="text" id="userN">
+     密码：<input type="text" id="passW">
+         <input type="button" id="btn" value="登录">
+</body>
+</html>

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>首页</title>
+    <script src="/js/jquery-3.4.1.min.js"></script>
+    <script>
+        $(function () {
+                $.ajax({
+                    url:"/user/getSession",
+                    type:"post",
+                    dataType:"json",
+                    success:function (data) {
+                        alert(JSON.stringify(data));
+                        if(data!=null){
+                            $("#spanA").html(data.USER_NAME);
+                        }
+                    },
+                    error:function () {
+                        alert("error");
+                    }
+                });
+        });
+        function  loginOut() {
+            $.ajax({
+                url:"/user/loginOut",
+                type:"get",
+                dataType:"json",
+                success:function (data) {
+                    if(data==1){
+                      location.href="/html/login.html";
+                    }
+                },
+                error:function () {
+                    alert("error");
+                }
+            });
+        }
+    </script>
+</head>
+<body>
+           欢迎你 <span id="spanA"></span>
+           <a href="javascript:loginOut()">退出</a>
+</body>
+</html>
